@@ -17,7 +17,7 @@ jobs:
       agent_hash: ${{ steps.agent.outputs.hash }}
       package_version: ${{ steps.package.outputs.version }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Check sources
         run: |
@@ -79,7 +79,7 @@ jobs:
             sdk_hash: 28e004c1be4d215d19c1f12a6aa4c8d8f80689549eb707d0ff5a71f16fa8d05f
             extension: apk
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Install build dependencies
         run: |
@@ -112,6 +112,7 @@ jobs:
           ./scripts/feeds install -a
           rsync -a --delete \
             --exclude '.git/' --exclude '.github/' --exclude 'dist/' \
+            --exclude 'sdk/' --exclude 'sdk.tar.zst' --exclude 'upload/' \
             "$GITHUB_WORKSPACE/" package/luci-app-nezha-agent/
 
       - name: Configure and compile
