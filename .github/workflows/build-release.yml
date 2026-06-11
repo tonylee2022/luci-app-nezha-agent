@@ -152,7 +152,7 @@ jobs:
             mv "$file" "upload/${{ matrix.label }}_$name"
           done
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: packages-${{ matrix.id }}
           path: upload/*
@@ -162,7 +162,7 @@ jobs:
     needs: [prepare, build]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           pattern: packages-*
           path: dist
@@ -173,7 +173,7 @@ jobs:
           cd dist
           sha256sum * > sha256sums.txt
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: luci-app-nezha-agent-${{ needs.prepare.outputs.package_version }}
           path: dist/*
