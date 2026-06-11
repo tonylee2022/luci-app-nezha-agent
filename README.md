@@ -67,30 +67,6 @@ make package/luci-app-nezha-agent/compile \
   NEZHA_AGENT_HASH=<nezha-agent_linux_amd64.zip 的 SHA-256>
 ```
 
-## GitHub Actions 发布
-
-工作流 `.github/workflows/build-release.yml` 支持：
-
-- 手动运行：编译后仅上传 Actions artifacts
-- 推送 `v*` 标签：编译并创建 GitHub Release
-- 校验 Git 标签与 `PKG_VERSION` 一致
-- 使用同一个 Agent tag/hash 构建 IPK 和 APK
-- 自动生成 `sha256sums.txt`
-
-正式发布使用固定版本的 OpenWrt 官方 SDK，保证包格式和构建结果稳定。更新
-OpenWrt SDK 时需要显式修改工作流中的下载地址与 SHA-256。
-
-## 本地调试打包
-
-`scripts/build_ipk.sh` 可快速生成 x86_64 主包，用于本地调试：
-
-```sh
-sh scripts/build_ipk.sh dist x86_64
-```
-
-该脚本不使用 OpenWrt SDK，也不生成独立中文语言包，不应作为正式 Release
-产物。正式包必须由 GitHub Actions 中的官方 SDK 构建。
-
 ## 自动更新
 
 Agent 自带自动更新功能，默认配置为：
