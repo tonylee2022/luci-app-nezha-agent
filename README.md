@@ -52,7 +52,7 @@ apk add --allow-untrusted ./25.12+_luci-i18n-nezha-agent-zh-cn-*.apk
 ```sh
 cat >> .config <<'EOF'
 CONFIG_PACKAGE_luci-app-nezha-agent=m
-CONFIG_PACKAGE_luci-i18n-nezha-agent-zh-cn=m
+CONFIG_LUCI_LANG_zh_Hans=y
 EOF
 
 make defconfig
