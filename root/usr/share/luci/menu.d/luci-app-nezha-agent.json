@@ -1,0 +1,14 @@
+{
+	"admin/services/nezha-agent": {
+		"title": "Nezha Agent",
+		"order": 90,
+		"action": {
+			"type": "view",
+			"path": "nezha-agent/config"
+		},
+		"depends": {
+			"acl": [ "luci-app-nezha-agent" ],
+			"uci": { "nezha-agent": true }
+		}
+	}
+}

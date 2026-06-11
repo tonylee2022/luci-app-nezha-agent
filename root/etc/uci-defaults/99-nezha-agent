@@ -1,0 +1,17 @@
+#!/bin/sh
+
+old="$(uci -q get nezha-agent.main.auto_update 2>/dev/null)"
+new="$(uci -q get nezha-agent.main.disable_auto_update 2>/dev/null)"
+
+if [ -n "$old" ] && [ -z "$new" ]; then
+	if [ "$old" = "1" ]; then
+		uci set nezha-agent.main.disable_auto_update='0'
+	else
+		uci set nezha-agent.main.disable_auto_update='1'
+	fi
+fi
+
+uci -q delete nezha-agent.main.auto_update
+uci commit nezha-agent
+
+exit 0

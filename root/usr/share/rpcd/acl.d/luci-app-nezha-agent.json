@@ -1,0 +1,14 @@
+{
+	"luci-app-nezha-agent": {
+		"description": "Grant access to Nezha Agent configuration",
+		"read": {
+			"uci": [ "nezha-agent" ],
+			"ubus": {
+				"service": [ "list" ]
+			}
+		},
+		"write": {
+			"uci": [ "nezha-agent" ]
+		}
+	}
+}

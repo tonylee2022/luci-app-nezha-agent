@@ -1,0 +1,80 @@
+#!/bin/sh
+
+set -eu
+
+UCI_BIN="${UCI_BIN:-uci}"
+
+uci_get() {
+	"$UCI_BIN" -q get "nezha-agent.main.$1" 2>/dev/null || printf '%s' "${2:-}"
+}
+
+yaml_quote() {
+	printf "'%s'" "$(printf '%s' "$1" | sed "s/'/''/g")"
+}
+
+sync_config() {
+	local config_file config_dir server secret tls insecure disable_auto_update
+	local disable_force disable_command disable_nat disable_query report_delay tmp values
+
+	config_file="$(uci_get config_file /etc/nezha-agent/config.yml)"
+	config_dir="${config_file%/*}"
+	[ "$config_dir" != "$config_file" ] || config_dir=.
+	mkdir -p "$config_dir"
+
+	server="$(uci_get server)"
+	secret="$(uci_get client_secret)"
+	[ -n "$server" ] && [ -n "$secret" ] || {
+		logger -t nezha-agent "Server or client secret is not configured"
+		return 1
+	}
+
+	tls="$(uci_get tls 0)"
+	insecure="$(uci_get insecure_tls 0)"
+	disable_auto_update="$(uci_get disable_auto_update 0)"
+	disable_force="$(uci_get disable_force_update 0)"
+	disable_command="$(uci_get disable_command_execute 0)"
+	disable_nat="$(uci_get disable_nat 0)"
+	disable_query="$(uci_get disable_send_query 0)"
+	report_delay="$(uci_get report_delay 3)"
+
+	tmp="${config_file}.tmp.$$"
+	values="${config_file}.values.$$"
+	{
+		printf 'server\t'; yaml_quote "$server"; printf '\n'
+		printf 'client_secret\t'; yaml_quote "$secret"; printf '\n'
+		printf 'tls\t%s\n' "$([ "$tls" = 1 ] && echo true || echo false)"
+		printf 'insecure_tls\t%s\n' "$([ "$insecure" = 1 ] && echo true || echo false)"
+		printf 'disable_auto_update\t%s\n' "$([ "$disable_auto_update" = 1 ] && echo true || echo false)"
+		printf 'disable_force_update\t%s\n' "$([ "$disable_force" = 1 ] && echo true || echo false)"
+		printf 'disable_command_execute\t%s\n' "$([ "$disable_command" = 1 ] && echo true || echo false)"
+		printf 'disable_nat\t%s\n' "$([ "$disable_nat" = 1 ] && echo true || echo false)"
+		printf 'disable_send_query\t%s\n' "$([ "$disable_query" = 1 ] && echo true || echo false)"
+		printf 'report_delay\t%s\n' "$report_delay"
+	} > "$values"
+
+	awk -F '\t' '
+		NR == FNR { values[$1] = $2; order[++count] = $1; next }
+		match($0, /^[A-Za-z0-9_]+:/) {
+			key = substr($0, 1, RLENGTH - 1)
+			if (key in values) {
+				if (!written[key]++) print key ": " values[key]
+				next
+			}
+		}
+		{ print }
+		END {
+			for (i = 1; i <= count; i++)
+				if (!written[order[i]]) print order[i] ": " values[order[i]]
+		}
+	' "$values" "${config_file}" > "$tmp" 2>/dev/null || {
+		awk -F '\t' '{ print $1 ": " $2 }' "$values" > "$tmp"
+	}
+	rm -f "$values"
+	chmod 600 "$tmp"
+	mv "$tmp" "$config_file"
+}
+
+case "${1:-}" in
+	sync-config) sync_config ;;
+	*) echo "Usage: $0 sync-config" >&2; exit 1 ;;
+esac

@@ -1,0 +1,6 @@
+*.ipk
+*.apk
+*.tar.gz
+*.tar.zst
+dist/
+.DS_Store
