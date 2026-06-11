@@ -9,7 +9,7 @@ PKG_DIR="$(CDPATH= cd -- "$SCRIPT_DIR/.." && pwd)"
 OUT_DIR="${1:-$PKG_DIR/dist}"
 TARGET_ARCH="${2:-$(uname -m)}"
 PKG_NAME="luci-app-nezha-agent"
-PKG_VERSION="1.0.0"
+PKG_VERSION="1.1.0"
 PKG_RELEASE="1"
 
 case "$OUT_DIR" in /*) ;; *) OUT_DIR="$PKG_DIR/$OUT_DIR" ;; esac
@@ -106,12 +106,36 @@ cat > "$CONTROL/postinst" <<'EOF'
 	[ ! -f /etc/uci-defaults/99-nezha-agent ] || {
 		( . /etc/uci-defaults/99-nezha-agent ) && rm -f /etc/uci-defaults/99-nezha-agent
 	}
+	/etc/init.d/nezha-agent enable 2>/dev/null || true
 	rm -f /tmp/luci-indexcache.* /tmp/luci-modulecache/* 2>/dev/null
 	/etc/init.d/rpcd reload 2>/dev/null || true
 }
 exit 0
 EOF
 chmod 0755 "$CONTROL/postinst"
+cat > "$CONTROL/prerm" <<'EOF'
+#!/bin/sh
+[ -n "${IPKG_INSTROOT}" ] || {
+	/etc/init.d/nezha-agent stop 2>/dev/null || true
+	/etc/init.d/nezha-agent disable 2>/dev/null || true
+}
+exit 0
+EOF
+chmod 0755 "$CONTROL/prerm"
+cat > "$CONTROL/postrm" <<'EOF'
+#!/bin/sh
+[ -n "${IPKG_INSTROOT}" ] || {
+	rm -f /tmp/luci-indexcache.* 2>/dev/null
+	rm -rf /tmp/luci-modulecache 2>/dev/null
+	/etc/init.d/rpcd reload 2>/dev/null || true
+	printf '%s\n' 'Nezha Agent configuration was retained.'
+	printf '%s\n' 'Remove it manually if no longer needed:'
+	printf '%s\n' '  rm -f /etc/config/nezha-agent /etc/config/nezha-agent-opkg'
+	printf '%s\n' '  rm -rf /etc/nezha-agent'
+}
+exit 0
+EOF
+chmod 0755 "$CONTROL/postrm"
 (cd "$CONTROL" && tar czf "$STAGING/control.tar.gz" .)
 printf '2.0\n' > "$STAGING/debian-binary"
 

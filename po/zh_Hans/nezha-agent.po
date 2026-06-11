@@ -52,6 +52,12 @@ msgstr "上报间隔"
 msgid "Status reporting interval in seconds, from 1 to 4."
 msgstr "状态上报间隔，单位为秒，范围为 1 到 4。"
 
+msgid "Custom IP APIs"
+msgstr "自定义 IP 查询 API"
+
+msgid "Add the API domains to the direct-connect rules of OpenClash, PassWall, or other proxy software to obtain the real public IP address."
+msgstr "请将 API 域名加入 OpenClash、PassWall 或其他代理软件的直连规则，以获取真实公网 IP。"
+
 msgid "Service status"
 msgstr "服务状态"
 

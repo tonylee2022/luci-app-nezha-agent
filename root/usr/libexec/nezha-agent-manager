@@ -3,6 +3,7 @@
 set -eu
 
 UCI_BIN="${UCI_BIN:-uci}"
+UUID_SOURCE="${UUID_SOURCE:-/proc/sys/kernel/random/uuid}"
 
 uci_get() {
 	"$UCI_BIN" -q get "nezha-agent.main.$1" 2>/dev/null || printf '%s' "${2:-}"
@@ -12,9 +13,44 @@ yaml_quote() {
 	printf "'%s'" "$(printf '%s' "$1" | sed "s/'/''/g")"
 }
 
+valid_uuid() {
+	printf '%s\n' "$1" | grep -Eq '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
+}
+
+config_uuid() {
+	[ -f "$1" ] || return 1
+	awk '
+		/^[[:space:]]*uuid[[:space:]]*:/ {
+			value = $0
+			sub(/^[[:space:]]*uuid[[:space:]]*:[[:space:]]*/, "", value)
+			gsub(/^[\047\"]|[\047\"][[:space:]]*$/, "", value)
+			print value
+			exit
+		}
+	' "$1"
+}
+
+load_uuid() {
+	local config_file uuid
+	config_file="$1"
+	uuid="$(config_uuid "$config_file" 2>/dev/null || true)"
+	if [ -n "$uuid" ]; then
+		printf '%s' "$uuid"
+		return 0
+	fi
+
+	uuid="$(sed -n '1p' "$UUID_SOURCE" 2>/dev/null || true)"
+	valid_uuid "$uuid" || {
+		logger -t nezha-agent "Unable to generate UUID"
+		return 1
+	}
+	printf '%s' "$uuid"
+}
+
 sync_config() {
 	local config_file config_dir server secret tls insecure disable_auto_update
-	local disable_force disable_command disable_nat disable_query report_delay tmp values
+	local disable_force disable_command disable_nat disable_query report_delay custom_ip_api
+	local uuid tmp values custom_values api
 
 	config_file="$(uci_get config_file /etc/nezha-agent/config.yml)"
 	config_dir="${config_file%/*}"
@@ -36,10 +72,14 @@ sync_config() {
 	disable_nat="$(uci_get disable_nat 0)"
 	disable_query="$(uci_get disable_send_query 0)"
 	report_delay="$(uci_get report_delay 3)"
+	custom_ip_api="$(uci_get custom_ip_api)"
+	uuid="$(load_uuid "$config_file")" || return 1
 
 	tmp="${config_file}.tmp.$$"
 	values="${config_file}.values.$$"
+	custom_values="${config_file}.custom.$$"
 	{
+		printf 'uuid\t'; yaml_quote "$uuid"; printf '\n'
 		printf 'server\t'; yaml_quote "$server"; printf '\n'
 		printf 'client_secret\t'; yaml_quote "$secret"; printf '\n'
 		printf 'tls\t%s\n' "$([ "$tls" = 1 ] && echo true || echo false)"
@@ -51,11 +91,32 @@ sync_config() {
 		printf 'disable_send_query\t%s\n' "$([ "$disable_query" = 1 ] && echo true || echo false)"
 		printf 'report_delay\t%s\n' "$report_delay"
 	} > "$values"
+	if [ -n "$custom_ip_api" ]; then
+		printf 'custom_ip_api:\n' > "$custom_values"
+		for api in $custom_ip_api; do
+			printf '  - '; yaml_quote "$api"; printf '\n'
+		done >> "$custom_values"
+	else
+		printf 'custom_ip_api: []\n' > "$custom_values"
+	fi
 
-	awk -F '\t' '
+	awk -F '\t' -v custom_file="$custom_values" '
+		function print_custom( line) {
+			while ((getline line < custom_file) > 0) print line
+			close(custom_file)
+		}
 		NR == FNR { values[$1] = $2; order[++count] = $1; next }
+		skipping_custom {
+			if ($0 ~ /^[[:space:]]/ || $0 ~ /^[[:space:]]*$/) next
+			skipping_custom = 0
+		}
 		match($0, /^[A-Za-z0-9_]+:/) {
 			key = substr($0, 1, RLENGTH - 1)
+			if (key == "custom_ip_api") {
+				if (!custom_written++) print_custom()
+				skipping_custom = 1
+				next
+			}
 			if (key in values) {
 				if (!written[key]++) print key ": " values[key]
 				next
@@ -65,11 +126,13 @@ sync_config() {
 		END {
 			for (i = 1; i <= count; i++)
 				if (!written[order[i]]) print order[i] ": " values[order[i]]
+			if (!custom_written) print_custom()
 		}
 	' "$values" "${config_file}" > "$tmp" 2>/dev/null || {
 		awk -F '\t' '{ print $1 ": " $2 }' "$values" > "$tmp"
+		cat "$custom_values" >> "$tmp"
 	}
-	rm -f "$values"
+	rm -f "$values" "$custom_values"
 	chmod 600 "$tmp"
 	mv "$tmp" "$config_file"
 }

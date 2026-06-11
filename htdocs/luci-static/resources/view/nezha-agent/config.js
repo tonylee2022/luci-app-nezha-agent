@@ -85,6 +85,12 @@ return view.extend({
 		o.default = '3';
 		o.description = '状态上报间隔，单位为秒，可设置为 1 到 4。';
 
+		o = s.option(form.DynamicList, 'custom_ip_api', _('Custom IP APIs'));
+		o.datatype = 'url';
+		o.rmempty = true;
+		o.placeholder = 'https://api.example.com/ip';
+		o.description = _('Add the API domains to the direct-connect rules of OpenClash, PassWall, or other proxy software to obtain the real public IP address.');
+
 		return m.render();
 	}
 });

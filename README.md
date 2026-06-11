@@ -107,3 +107,7 @@ disable_auto_update: false
 - Agent 配置：`/etc/nezha-agent/config.yml`
 - Agent 程序：`/usr/bin/nezha-agent`
 - 服务脚本：`/etc/init.d/nezha-agent`
+
+UUID 仅保存在 Agent 配置文件中；首次缺失时生成，后续同步会继续使用配置中的值。LuCI 支持配置多个 `custom_ip_api`。使用透明代理时，应将对应 API 域名加入代理软件的直连规则，避免 Agent 获取到代理出口 IP。配置同步只更新 LuCI 管理的字段，手动添加的其他 YAML 参数不会被校验或删除。
+
+卸载软件包会自动停止并禁用服务，但保留用户配置。若不再需要，可手动删除 `/etc/config/nezha-agent`、`/etc/config/nezha-agent-opkg` 和 `/etc/nezha-agent`。

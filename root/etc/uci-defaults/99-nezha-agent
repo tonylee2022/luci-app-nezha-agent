@@ -13,5 +13,6 @@ fi
 
 uci -q delete nezha-agent.main.auto_update
 uci commit nezha-agent
+rm -f /etc/nezha-agent/uuid
 
 exit 0
