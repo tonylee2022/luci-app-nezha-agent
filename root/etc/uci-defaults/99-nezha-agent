@@ -1,7 +1,11 @@
 #!/bin/sh
 
+UUID_LEGACY_FILE="${UUID_LEGACY_FILE:-/etc/nezha-agent/uuid}"
 old="$(uci -q get nezha-agent.main.auto_update 2>/dev/null)"
 new="$(uci -q get nezha-agent.main.disable_auto_update 2>/dev/null)"
+uuid="$(uci -q get nezha-agent.main.uuid 2>/dev/null)"
+config_file="$(uci -q get nezha-agent.main.config_file 2>/dev/null)"
+[ -n "$config_file" ] || config_file=/etc/nezha-agent/config.yml
 
 if [ -n "$old" ] && [ -z "$new" ]; then
 	if [ "$old" = "1" ]; then
@@ -12,7 +16,21 @@ if [ -n "$old" ] && [ -z "$new" ]; then
 fi
 
 uci -q delete nezha-agent.main.auto_update
+
+if [ -z "$uuid" ] && [ -f "$config_file" ]; then
+	uuid="$(awk '
+		/^[[:space:]]*uuid[[:space:]]*:/ {
+			value = $0
+			sub(/^[[:space:]]*uuid[[:space:]]*:[[:space:]]*/, "", value)
+			gsub(/^[\047"]|[\047"][[:space:]]*$/, "", value)
+			print value
+			exit
+		}
+	' "$config_file")"
+	[ -z "$uuid" ] || uci set "nezha-agent.main.uuid=$uuid"
+fi
+
 uci commit nezha-agent
-rm -f /etc/nezha-agent/uuid
+rm -f "$UUID_LEGACY_FILE"
 
 exit 0

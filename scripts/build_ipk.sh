@@ -71,6 +71,7 @@ mkdir -p "$DATA/etc/config" "$DATA/etc/init.d" "$DATA/usr/bin" "$DATA/usr/libexe
 mkdir -p "$DATA/etc/uci-defaults"
 mkdir -p "$DATA/usr/share/luci/menu.d" "$DATA/usr/share/rpcd/acl.d"
 mkdir -p "$DATA/www/luci-static/resources/view/nezha-agent"
+mkdir -p "$DATA/www/luci-static/resources/nezha-agent"
 cp "$PKG_DIR/root/etc/config/nezha-agent" "$DATA/etc/config/nezha-agent"
 cp "$PKG_DIR/root/etc/init.d/nezha-agent" "$DATA/etc/init.d/nezha-agent"
 cp "$PKG_DIR/root/etc/uci-defaults/99-nezha-agent" "$DATA/etc/uci-defaults/99-nezha-agent"
@@ -79,6 +80,8 @@ cp "$PKG_DIR/root/usr/share/luci/menu.d/luci-app-nezha-agent.json" "$DATA/usr/sh
 cp "$PKG_DIR/root/usr/share/rpcd/acl.d/luci-app-nezha-agent.json" "$DATA/usr/share/rpcd/acl.d/"
 cp "$PKG_DIR/htdocs/luci-static/resources/view/nezha-agent/config.js" \
 	"$DATA/www/luci-static/resources/view/nezha-agent/config.js"
+cp "$PKG_DIR/htdocs/luci-static/resources/nezha-agent/import-parser.js" \
+	"$DATA/www/luci-static/resources/nezha-agent/import-parser.js"
 cp "$STAGING/agent/nezha-agent" "$DATA/usr/bin/nezha-agent"
 chmod 0755 "$DATA/etc/init.d/nezha-agent" "$DATA/etc/uci-defaults/99-nezha-agent" \
 	"$DATA/usr/libexec/nezha-agent-manager" "$DATA/usr/bin/nezha-agent"

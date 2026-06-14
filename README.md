@@ -8,6 +8,7 @@
 ## 功能
 
 - 在 LuCI 中配置面板服务器、客户端密钥和官方 Agent 参数
+- 粘贴哪吒 V1 面板生成的 Linux 安装命令并自动填充连接参数
 - 显示服务状态并支持 procd 开机启动、重载和异常重启
 - 构建时获取官方最新 Agent Release，并校验官方 SHA-256
 - 保存配置时保留 Agent UUID 和其他未由 LuCI 管理的 YAML 字段
@@ -44,6 +45,8 @@ apk add --allow-untrusted ./25.12+_luci-i18n-nezha-agent-zh-cn-*.apk
 ```
 
 安装后进入“服务 → 哪吒监控 Agent”完成配置。
+
+也可以将哪吒 V1 面板生成的 Linux 安装命令粘贴到“V1 安装命令”，点击“解析并填充”，核对提取的服务器、客户端密钥、TLS 和 UUID 后再保存并应用。安装命令本身不会写入配置。命令不包含 `NZ_UUID` 时，UUID 字段会被清空，并在应用配置时生成新的 UUID。
 
 ## OpenWrt SDK 编译
 
@@ -84,6 +87,6 @@ disable_auto_update: false
 - Agent 程序：`/usr/bin/nezha-agent`
 - 服务脚本：`/etc/init.d/nezha-agent`
 
-UUID 仅保存在 Agent 配置文件中；首次缺失时生成，后续同步会继续使用配置中的值。LuCI 支持配置多个 `custom_ip_api`。使用透明代理时，应将对应 API 域名加入代理软件的直连规则，避免 Agent 获取到代理出口 IP。配置同步只更新 LuCI 管理的字段，手动添加的其他 YAML 参数不会被校验或删除。
+UUID 保存在 UCI 和 Agent 配置文件中；首次缺失或在 LuCI 中清空时生成，并写回 UCI。升级时会自动迁移已有 Agent 配置文件中的 UUID。LuCI 支持配置多个 `custom_ip_api`。使用透明代理时，应将对应 API 域名加入代理软件的直连规则，避免 Agent 获取到代理出口 IP。配置同步只更新 LuCI 管理的字段，手动添加的其他 YAML 参数不会被校验或删除。
 
 卸载软件包会自动停止并禁用服务，但保留用户配置。若不再需要，可手动删除 `/etc/config/nezha-agent`、`/etc/config/nezha-agent-opkg` 和 `/etc/nezha-agent`。

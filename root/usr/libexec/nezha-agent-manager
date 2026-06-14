@@ -9,6 +9,11 @@ uci_get() {
 	"$UCI_BIN" -q get "nezha-agent.main.$1" 2>/dev/null || printf '%s' "${2:-}"
 }
 
+uci_set_uuid() {
+	"$UCI_BIN" -q set "nezha-agent.main.uuid=$1"
+	"$UCI_BIN" -q commit nezha-agent
+}
+
 yaml_quote() {
 	printf "'%s'" "$(printf '%s' "$1" | sed "s/'/''/g")"
 }
@@ -17,24 +22,18 @@ valid_uuid() {
 	printf '%s\n' "$1" | grep -Eq '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
 }
 
-config_uuid() {
-	[ -f "$1" ] || return 1
-	awk '
-		/^[[:space:]]*uuid[[:space:]]*:/ {
-			value = $0
-			sub(/^[[:space:]]*uuid[[:space:]]*:[[:space:]]*/, "", value)
-			gsub(/^[\047\"]|[\047\"][[:space:]]*$/, "", value)
-			print value
-			exit
-		}
-	' "$1"
+valid_identifier() {
+	[ -n "$1" ] && ! printf '%s' "$1" | grep -Eq '[[:space:][:cntrl:]]'
 }
 
 load_uuid() {
-	local config_file uuid
-	config_file="$1"
-	uuid="$(config_uuid "$config_file" 2>/dev/null || true)"
+	local uuid
+	uuid="$(uci_get uuid)"
 	if [ -n "$uuid" ]; then
+		valid_identifier "$uuid" || {
+			logger -t nezha-agent "Configured UUID contains whitespace or control characters"
+			return 1
+		}
 		printf '%s' "$uuid"
 		return 0
 	fi
@@ -42,6 +41,10 @@ load_uuid() {
 	uuid="$(sed -n '1p' "$UUID_SOURCE" 2>/dev/null || true)"
 	valid_uuid "$uuid" || {
 		logger -t nezha-agent "Unable to generate UUID"
+		return 1
+	}
+	uci_set_uuid "$uuid" || {
+		logger -t nezha-agent "Unable to persist generated UUID"
 		return 1
 	}
 	printf '%s' "$uuid"
@@ -73,7 +76,7 @@ sync_config() {
 	disable_query="$(uci_get disable_send_query 0)"
 	report_delay="$(uci_get report_delay 3)"
 	custom_ip_api="$(uci_get custom_ip_api)"
-	uuid="$(load_uuid "$config_file")" || return 1
+	uuid="$(load_uuid)" || return 1
 
 	tmp="${config_file}.tmp.$$"
 	values="${config_file}.values.$$"
