@@ -9,7 +9,7 @@ PKG_DIR="$(CDPATH= cd -- "$SCRIPT_DIR/.." && pwd)"
 OUT_DIR="${1:-$PKG_DIR/dist}"
 TARGET_ARCH="${2:-$(uname -m)}"
 PKG_NAME="luci-app-nezha-agent"
-PKG_VERSION="1.1.0"
+PKG_VERSION="1.2.0"
 PKG_RELEASE="1"
 
 case "$OUT_DIR" in /*) ;; *) OUT_DIR="$PKG_DIR/$OUT_DIR" ;; esac
