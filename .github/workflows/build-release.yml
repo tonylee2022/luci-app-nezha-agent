@@ -26,9 +26,11 @@ jobs:
           sh -n root/etc/uci-defaults/99-nezha-agent
           sh -n root/usr/libexec/nezha-agent-manager
           sh -n scripts/build_ipk.sh
+          sh -n scripts/generate_release_notes.sh
           tests/test_arch_mapping.sh
           tests/test_manager.sh
           sh tests/test_uci_defaults.sh
+          sh tests/test_release_notes.sh
           node tests/test_import_parser.js
           node --check htdocs/luci-static/resources/view/nezha-agent/config.js
           node --check htdocs/luci-static/resources/nezha-agent/import-parser.js
@@ -165,6 +167,10 @@ jobs:
     needs: [prepare, build]
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
       - uses: actions/download-artifact@v8
         with:
           pattern: packages-*
@@ -181,9 +187,14 @@ jobs:
           name: luci-app-nezha-agent-${{ needs.prepare.outputs.package_version }}
           path: dist/*
 
+      - name: Generate Chinese release notes
+        if: github.ref_type == 'tag'
+        run: |
+          sh scripts/generate_release_notes.sh "$GITHUB_REF_NAME" release-notes.md
+
       - name: Create GitHub release
         if: github.ref_type == 'tag'
         uses: softprops/action-gh-release@v2
         with:
           files: dist/*
-          generate_release_notes: true
+          body_path: release-notes.md
